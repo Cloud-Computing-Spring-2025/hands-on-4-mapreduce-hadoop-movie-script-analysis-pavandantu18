@@ -4,6 +4,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.StringTokenizer;
 
 public class UniqueWordsMapper extends Mapper<Object, Text, Text, Text> {
@@ -29,16 +30,25 @@ public class UniqueWordsMapper extends Mapper<Object, Text, Text, Text> {
         String characterName = line.substring(0, colonIndex).trim();
         String dialogue = line.substring(colonIndex + 1).trim();
 
-        // Tokenize the dialogue into words
+        // Tokenize dialogue into words
         StringTokenizer tokenizer = new StringTokenizer(dialogue);
+        HashSet<String> uniqueWords = new HashSet<>();
 
         while (tokenizer.hasMoreTokens()) {
             String token = tokenizer.nextToken().toLowerCase().replaceAll("[^a-zA-Z]", "");
             if (!token.isEmpty()) {
-                character.set(characterName);
-                word.set(token);
-                context.write(character, word);  // Emit (Character, Word)
+                uniqueWords.add(token);
             }
+        }
+
+        // Emit each unique word and update counter
+        for (String uniqueWord : uniqueWords) {
+            word.set(uniqueWord);
+            character.set(characterName);
+            context.write(character, word);
+
+            // Increment counter for unique words identified
+            context.getCounter("HadoopCounters", "Total Unique Words Identified").increment(1);
         }
     }
 }
